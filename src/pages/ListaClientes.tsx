@@ -1,9 +1,16 @@
-import { cn } from '@/lib/utils';
-import { useClientes } from '../context/ClientesContext';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import agendamentosService from '@/services/agendamentosService';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useMemo } from 'react';
+
+interface Agendamento {
+  id: string;
+  cliente: string;
+  tipo_atendimento: 'Prioridade' | 'Agendado' | 'Ordem de Chegada';
+  tipoPrioridade?: 'idoso' | 'deficiencia' | 'gestante';
+}
 
 const horariosHoje = [
   { hora: "9:30 AM", duracao: "45 min" },
@@ -14,24 +21,37 @@ const horariosHoje = [
 ];
 
 const ListaClientes = () => {
-  const { clientes, setClientes } = useClientes();
+  const [clientes, setClientes] = useState<Agendamento[]>([]);
 
-  const agendadosHoje = useMemo(() => {
-    const lista = [];
-    for (let i = 0; i < horariosHoje.length; i++) {
-      lista.push(clientes[i] || null);
-    }
-    return lista;
-  }, [clientes]);
+  useEffect(() => {
+    fetchAgendamentos();
+  }, []);
+
+  const fetchAgendamentos = async () => {
+    agendamentosService()
+      .getAgendamentos()
+      .then((data) => {
+        setClientes(data);
+      })
+      .catch((error) => {
+        console.error("Erro ao carregar agendamentos:", error);
+        toast("Erro ao carregar agendamentos", {
+          style: { backgroundColor: "#f44336", color: "white" },
+          position: "top-right",
+        });
+      });
+  }
 
   const handleProximoCliente = () => {
-    if (clientes.length > 0) {
-      setClientes((prev: any) => prev.slice(1));
+    const cliente = clientes.shift();
+
+    agendamentosService().proximoCliente(cliente!.id).then(() => {
+      fetchAgendamentos();
       toast("Atendimento finalizado com sucesso", {
         style: { backgroundColor: "#4caf50", color: "white" },
-        position: "top-right"
+        position: "top-right",
       });
-    }
+    })
   };
 
   return (
@@ -43,7 +63,7 @@ const ListaClientes = () => {
           className="flex-1 rounded-md px-3 py-2 bg-zinc-800 text-white placeholder:text-zinc-400 border border-zinc-700"
           placeholder="Busque seu horário"
         />
-        <span className="bg-[#A363F0] text-white px-2 py-1 rounded text-xs">5</span>
+        <span className="bg-[#A363F0] text-white px-2 py-1 rounded text-xs">{clientes.length}</span>
       </div>
       {/* Agenda de hoje */}
       <div className="space-y-6">
@@ -58,19 +78,19 @@ const ListaClientes = () => {
                 </div>
                 <div className={cn(
                   "flex-1 rounded-lg p-4 flex flex-col bg-zinc-800 border border-zinc-700",
-                  agendadosHoje[i]
-                    ? agendadosHoje[i].atendimento === "prioridade"
+                  clientes[i]
+                    ? clientes[i].tipo_atendimento === "Prioridade"
                       ? "border-[#A363F0]"
                       : "border-zinc-700"
                     : "border-zinc-700"
                 )}>
-                  {agendadosHoje[i] ? (
+                  {clientes[i] ? (
                     <>
                       <span className="text-white font-semibold">
-                        {agendadosHoje[i].nome}
-                        {agendadosHoje[i].atendimento === "prioridade" && (
+                        {clientes[i].cliente}
+                        {clientes[i].tipo_atendimento === "Prioridade" && (
                           <span className="ml-2 text-xs text-[#A363F0]">
-                            (Prioridade{agendadosHoje[i].tipoPrioridade ? `: ${agendadosHoje[i].tipoPrioridade}` : ""})
+                            (Prioridade{clientes[i].tipoPrioridade ? `: ${clientes[i].tipoPrioridade}` : ""})
                           </span>
                         )}
                       </span>

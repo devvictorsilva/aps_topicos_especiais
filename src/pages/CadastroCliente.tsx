@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -9,40 +8,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type { IAgendamentoBody } from '@/interfaces/IAgendamento';
+import agendamentosService from '@/services/agendamentosService';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useClientes } from '../context/ClientesContext';
 import { toast } from "sonner";
-import { Icon } from 'lucide-react';
 
-type Atendimento = 'prioridade' | 'horario' | 'chegada';
+type Atendimento = 'Prioridade' | 'Agendado' | 'Ordem de Chegada';
 type TipoPrioridade = 'idoso' | 'deficiencia' | 'gestante' | '';
 
 export function CadastroCliente() {
   const [nome, setNome] = useState('');
-  const [atendimento, setAtendimento] = useState<Atendimento>('chegada');
+  const [atendimento, setAtendimento] = useState<Atendimento>('Ordem de Chegada');
   const [tipoPrioridade, setTipoPrioridade] = useState<TipoPrioridade>('');
-  const { adicionarCliente } = useClientes();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome.trim()) return;
 
-    const novoCliente = {
-      nome,
-      atendimento,
-      ...(atendimento === 'prioridade' && { tipoPrioridade }),
+    const novoCliente: IAgendamentoBody = {
+      cliente: nome,
+      tipo_atendimento: atendimento,
     };
 
-    adicionarCliente(novoCliente);
+    agendamentosService().createAgendamento(novoCliente).then(() => {
+      toast("Agendamento realizado com sucesso", {
+        style: { backgroundColor: "#4caf50", color: "white" },
+        position: "top-right"
+      });
 
-    toast("Agendamento realizado com sucesso", {
-      style: { backgroundColor: "#4caf50", color: "white" },
-      position: "top-right"
-    });
-
-    setNome('');
-    setAtendimento('chegada');
-    setTipoPrioridade('');
+      setNome('');
+      setAtendimento('Ordem de Chegada');
+      setTipoPrioridade('');
+    })
   };
 
   return (
@@ -68,14 +66,14 @@ export function CadastroCliente() {
                 <SelectValue placeholder="Tipo de Atendimento" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="prioridade">Prioridade</SelectItem>
-                <SelectItem value="horario">Agendamento por Horário</SelectItem>
-                <SelectItem value="chegada">Ordem de Chegada</SelectItem>
+                <SelectItem value="Prioridade">Prioridade</SelectItem>
+                <SelectItem value="Agendado">Agendamento por Horário</SelectItem>
+                <SelectItem value="Ordem de Chegada">Ordem de Chegada</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {atendimento === 'prioridade' && (
+          {atendimento === 'Prioridade' && (
             <div>
               <Label htmlFor="tipoPrioridade" className="mb-2">Tipo de Prioridade</Label>
               <Select
